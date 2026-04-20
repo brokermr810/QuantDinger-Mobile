@@ -1,8 +1,18 @@
 <template>
   <div class="login-page">
     <div class="login-shell">
+      <div class="login-toolbar">
+        <button
+          type="button"
+          class="lang-btn"
+          :aria-label="$t('login.language_switch')"
+          @click="showLangSheet = true"
+        >
+          {{ langButtonLabel }}
+        </button>
+      </div>
       <div class="login-header">
-        <div class="logo-wrap" :class="{ 'logo-wrap--light': isLightTheme }">
+        <div class="logo-wrap">
           <img :src="logoUrl" alt="Logo" class="logo-image" />
         </div>
         <p class="subtitle">{{ $t('login.subtitle') }}</p>
@@ -57,6 +67,24 @@
               {{ $t('login.remember') }}
             </van-checkbox>
             <span class="link" @click="switchMode('forgot')">{{ $t('login.forgot_password') }}</span>
+          </div>
+          <div class="row-agreement">
+            <van-checkbox v-model="agreeTerms" shape="square" icon-size="16">
+              <span class="agree-line">
+                {{ $t('login.agree_prefix') }}
+                <span class="link-inline" role="button" tabindex="0" @click.stop.prevent="openLegal('terms')">{{
+                  $t('login.agree_terms_link')
+                }}</span>
+                {{ $t('login.agree_connector') }}
+                <span
+                  class="link-inline"
+                  role="button"
+                  tabindex="0"
+                  @click.stop.prevent="openLegal('disclaimer')"
+                  >{{ $t('login.agree_disclaimer_link') }}</span
+                >
+              </span>
+            </van-checkbox>
           </div>
         </template>
 
@@ -137,7 +165,20 @@
           </div>
           <div class="row-agreement">
             <van-checkbox v-model="agreeTerms" shape="square" icon-size="16">
-              {{ $t('login.agree_terms') }}
+              <span class="agree-line">
+                {{ $t('login.agree_prefix') }}
+                <span class="link-inline" role="button" tabindex="0" @click.stop.prevent="openLegal('terms')">{{
+                  $t('login.agree_terms_link')
+                }}</span>
+                {{ $t('login.agree_connector') }}
+                <span
+                  class="link-inline"
+                  role="button"
+                  tabindex="0"
+                  @click.stop.prevent="openLegal('disclaimer')"
+                  >{{ $t('login.agree_disclaimer_link') }}</span
+                >
+              </span>
             </van-checkbox>
           </div>
         </template>
@@ -241,7 +282,7 @@
               v-if="oauthConfig.google_enabled"
               type="button"
               class="oauth-btn"
-              :disabled="oauthLoading"
+              :disabled="oauthLoading || !agreeTerms"
               @click="handleOAuthLogin('google')"
             >
               <svg class="oauth-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -256,7 +297,7 @@
               v-if="oauthConfig.github_enabled"
               type="button"
               class="oauth-btn"
-              :disabled="oauthLoading"
+              :disabled="oauthLoading || !agreeTerms"
               @click="handleOAuthLogin('github')"
             >
               <svg class="oauth-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -277,13 +318,54 @@
         </div>
       </div>
     </div>
+
+    <van-action-sheet
+      v-model:show="showLangSheet"
+      :actions="langSheetActions"
+      :cancel-text="$t('common.cancel')"
+      close-on-click-action
+      @select="onLangSheetSelect"
+    />
+
+    <van-popup
+      v-model:show="legalVisible"
+      position="bottom"
+      round
+      :style="{ height: '78vh' }"
+      class="legal-popup-root"
+    >
+      <div class="legal-popup">
+        <div class="legal-popup__head">
+          <span
+            :class="['legal-tab', { active: legalTab === 'terms' }]"
+            @click="legalTab = 'terms'"
+            >{{ $t('about.terms_tab') }}</span
+          >
+          <span
+            :class="['legal-tab', { active: legalTab === 'disclaimer' }]"
+            @click="legalTab = 'disclaimer'"
+            >{{ $t('about.disclaimer_tab') }}</span
+          >
+        </div>
+        <div class="legal-popup__body">{{ legalPopupBody }}</div>
+        <div class="legal-popup__foot">
+          <van-button type="primary" block round @click="legalVisible = false">{{
+            $t('common.confirm')
+          }}</van-button>
+        </div>
+      </div>
+    </van-popup>
   </div>
 </template>
 
 <script>
 import { showToast } from 'vant'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 import { authApi, getBaseUrl } from '@/api'
 import { useUserStore, useSettingsStore } from '@/stores'
+import { getOAuthRedirectUri } from '@/utils/oauthRedirect'
+import { getLegal } from '@/constants/legal'
 import logoUrl from '@/assets/logo.png'
 
 /** Normalize backend variants for Turnstile (PC / mobile API parity). */
@@ -400,7 +482,10 @@ export default {
       turnstileWidgetId: null,
       turnstileToken: '',
       turnstileError: '',
-      turnstileErrorCode: ''
+      turnstileErrorCode: '',
+      showLangSheet: false,
+      legalVisible: false,
+      legalTab: 'terms'
     }
   },
 
@@ -432,12 +517,40 @@ export default {
       }
       return this.$t('login.send_code')
     },
+    langButtonLabel() {
+      const map = {
+        'en-US': 'EN',
+        'zh-CN': '中文',
+        'zh-TW': '繁',
+        'ja-JP': 'JA',
+        'ko-KR': 'KO'
+      }
+      return map[this.settingsStore.locale] || 'EN'
+    },
+    langSheetActions() {
+      return [
+        { name: this.$t('language.en_us'), value: 'en-US' },
+        { name: this.$t('language.zh_cn'), value: 'zh-CN' },
+        { name: this.$t('language.zh_tw'), value: 'zh-TW' },
+        { name: this.$t('language.ja_jp'), value: 'ja-JP' },
+        { name: this.$t('language.ko_kr'), value: 'ko-KR' }
+      ]
+    },
+    legalPopupBody() {
+      const loc = this.settingsStore.locale
+      const doc = getLegal(loc)
+      return this.legalTab === 'terms' ? doc.terms : doc.disclaimer
+    },
     canSubmit() {
       const turnstileReady = !this.securityConfig.turnstile_enabled || !!this.turnstileToken
       if (!turnstileReady) return false
 
       if (this.mode === 'login') {
-        return !!(this.loginForm.username.trim() && this.loginForm.password)
+        return !!(
+          this.loginForm.username.trim() &&
+          this.loginForm.password &&
+          this.agreeTerms
+        )
       }
       if (this.mode === 'register') {
         return !!(
@@ -478,7 +591,22 @@ export default {
       if (this.mode === mode) return
       this.mode = mode
       this.showPassword = false
+      if (mode === 'login' || mode === 'register') {
+        this.agreeTerms = false
+      }
       this.$nextTick(() => this.renderTurnstileIfNeeded())
+    },
+
+    onLangSheetSelect(action) {
+      if (!action || action.value == null) return
+      this.settingsStore.setLocale(action.value)
+      this.showLangSheet = false
+      showToast({ message: this.$t('common.success'), type: 'success' })
+    },
+
+    openLegal(tab) {
+      this.legalTab = tab === 'disclaimer' ? 'disclaimer' : 'terms'
+      this.legalVisible = true
     },
 
     async initSecurity() {
@@ -502,13 +630,28 @@ export default {
       await this.renderTurnstileIfNeeded()
     },
 
-    handleOAuthLogin(provider) {
+    async handleOAuthLogin(provider) {
       if (this.oauthLoading) return
+      if (!this.agreeTerms) {
+        showToast({ message: this.$t('login.need_agree'), type: 'fail' })
+        return
+      }
       this.oauthLoading = true
       const base = getBaseUrl().replace(/\/$/, '')
-      const redirectBack = `${window.location.origin}${window.location.pathname}`
+      const redirectBack = getOAuthRedirectUri()
       const url = `${base}/api/auth/oauth/${provider}?redirect=${encodeURIComponent(redirectBack)}`
-      window.location.href = url
+      try {
+        if (Capacitor.isNativePlatform()) {
+          await Browser.open({ url, presentationStyle: 'fullscreen' })
+        } else {
+          window.location.href = url
+        }
+      } catch (e) {
+        console.error('OAuth start error:', e)
+        showToast({ message: this.$t('login.oauth_err_generic'), type: 'fail' })
+      } finally {
+        this.oauthLoading = false
+      }
     },
 
     async handleOAuthCallback() {
@@ -697,6 +840,10 @@ export default {
     },
 
     async handleLogin() {
+      if (!this.agreeTerms) {
+        showToast({ message: this.$t('login.need_agree'), type: 'fail' })
+        return
+      }
       this.loading = true
       try {
         const res = await authApi.login({
@@ -806,6 +953,36 @@ export default {
   box-shadow: var(--shadow-pop);
 }
 
+.login-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px -4px 4px;
+}
+
+.lang-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.lang-btn:active {
+  background: var(--surface-raised-2);
+  color: var(--accent);
+}
+
 .login-header {
   text-align: center;
   margin-bottom: 20px;
@@ -828,11 +1005,6 @@ export default {
   height: 68px;
   object-fit: contain;
   filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.18));
-}
-
-/* 浅色主题：logo 压成黑色，避免白底上看不清 */
-.logo-wrap--light .logo-image {
-  filter: brightness(0) saturate(100%);
 }
 
 .subtitle {
@@ -959,6 +1131,72 @@ export default {
   color: var(--text-2);
   font-size: 12px;
   line-height: 1.5;
+}
+
+.agree-line {
+  white-space: normal;
+}
+
+.link-inline {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.legal-popup-root :deep(.van-popup__content) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.legal-popup {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px 14px 16px;
+  box-sizing: border-box;
+}
+
+.legal-popup__head {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.legal-tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.legal-tab.active {
+  color: var(--text-on-accent);
+  background: var(--accent);
+  border-color: transparent;
+}
+
+.legal-popup__body {
+  flex: 1;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  padding: 4px 2px 12px;
+}
+
+.legal-popup__foot {
+  flex-shrink: 0;
+  padding-top: 4px;
 }
 
 .link {

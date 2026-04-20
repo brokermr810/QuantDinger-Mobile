@@ -4,19 +4,20 @@
   "webDir": "dist",
   "server": {
     "androidScheme": "https",
+    "hostname": "localhost",
     "iosScheme": "https"
   },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 2000,
       "launchAutoHide": true,
-      "backgroundColor": "#0f172a",
+      "backgroundColor": "#000000",
       "showSpinner": true,
-      "spinnerColor": "#3b82f6"
+      "spinnerColor": "#f0b72a"
     },
     "StatusBar": {
       "style": "dark",
-      "backgroundColor": "#0f172a"
+      "backgroundColor": "#000000"
     },
     "Keyboard": {
       "resize": "body",

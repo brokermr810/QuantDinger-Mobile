@@ -135,6 +135,11 @@
           <span class="value">{{ localeLabel }}</span>
           <van-icon name="arrow" class="arrow" />
         </div>
+        <div class="menu-item" @click="$router.push('/profile/about')">
+          <div class="menu-icon c-slate"><van-icon name="info-o" /></div>
+          <span class="label">{{ $t('profile.about_us') }}</span>
+          <van-icon name="arrow" class="arrow" />
+        </div>
         <div class="menu-item" @click="toggleTheme">
           <div class="menu-icon c-orange">
             <van-icon name="bulb-o" />

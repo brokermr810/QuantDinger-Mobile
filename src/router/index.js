@@ -122,6 +122,12 @@ const routes = [
     meta: { titleKey: 'profile.language', showTabbar: false }
   },
   {
+    path: '/profile/about',
+    name: 'ProfileAbout',
+    component: () => import('@/views/profile/About.vue'),
+    meta: { titleKey: 'about.title', showTabbar: false }
+  },
+  {
     path: '/profile/security',
     name: 'ProfileSecurity',
     component: () => import('@/views/profile/Security.vue'),
