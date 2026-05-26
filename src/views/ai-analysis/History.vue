@@ -63,6 +63,7 @@
 import { showConfirmDialog, showToast } from 'vant'
 import { aiAnalysisApi } from '@/api'
 import { useAiAnalysisStore } from '@/stores'
+import { buildHistoryResultPayload } from '@/utils/aiAnalysisHistory'
 
 const MARKET_COLORS = {
   Crypto: '#722ed1',
@@ -145,42 +146,10 @@ export default {
         return
       }
 
-      let payload
-      if (item.full_result) {
-        payload = item.full_result
-      } else {
-        const price = Number(item.price) || Number(item.current_price) || 0
-        const dec = String(item.decision || 'HOLD').toUpperCase()
-        let stopLoss = null
-        let takeProfit = null
-        if (price > 0) {
-          if (dec === 'SELL') {
-            stopLoss = price * 1.05
-            takeProfit = price * 0.95
-          } else if (dec === 'BUY') {
-            stopLoss = price * 0.95
-            takeProfit = price * 1.05
-          }
-        }
-        payload = {
-          decision: item.decision,
-          confidence: item.confidence,
-          summary: item.summary,
-          market_data: {
-            current_price: item.price || item.current_price,
-            change_24h: 0
-          },
-          trading_plan: {
-            entry_price: item.price || item.current_price,
-            stop_loss: stopLoss ?? item.stop_loss,
-            take_profit: takeProfit ?? item.take_profit
-          },
-          scores: item.scores || {},
-          reasons: item.reasons || [],
-          risks: item.risks || [],
-          indicators: item.indicators || {},
-          memory_id: item.id
-        }
+      const payload = buildHistoryResultPayload(item)
+      if (!payload) {
+        showToast({ message: this.$t('ai_analysis.error_tip'), type: 'fail' })
+        return
       }
       this.aiStore.setLastResult(payload)
       this.$router.push('/ai-analysis')

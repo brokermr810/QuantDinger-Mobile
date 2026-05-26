@@ -114,7 +114,7 @@
       <div v-if="positions.length" class="list-wrap">
         <div v-for="position in positions" :key="position.symbol + position.side" class="list-row">
           <div>
-            <span class="row-title">{{ position.symbol || '-' }}</span>
+            <span class="row-title">{{ normalizeQuickTradeSymbol(position.symbol) || '-' }}</span>
             <p class="row-subtitle">{{ getSideText(position.side) }} · {{ formatNumber(position.size) }}</p>
           </div>
           <div class="row-actions">
@@ -324,9 +324,32 @@ export default {
 
     shortSymbol(symbol) {
       if (!symbol) return ''
-      const s = String(symbol)
+      const s = this.normalizeQuickTradeSymbol(symbol)
       if (s.includes('/')) return s.split('/')[0]
       return s.replace('USDT', '').replace('USD', '')
+    },
+
+    /** API 需要 BTC/USDT；持仓列表可能显示为 BTC/USDT-SWAP（OKX instId 解析） */
+    normalizeQuickTradeSymbol(symbol) {
+      let s = String(symbol || '').trim()
+      if (!s) return ''
+      if (s.includes(':')) s = s.split(':')[0].trim()
+      if (s.includes('/')) {
+        const i = s.indexOf('/')
+        const base = s.slice(0, i).trim().toUpperCase()
+        let quote = s.slice(i + 1).trim().toUpperCase()
+        if (quote.endsWith('-SWAP')) quote = quote.slice(0, -5)
+        return `${base}/${quote}`
+      }
+      const upper = s.toUpperCase()
+      if (upper.endsWith('-SWAP')) {
+        const core = upper.slice(0, -5)
+        const dash = core.indexOf('-')
+        if (dash > 0) {
+          return `${core.slice(0, dash)}/${core.slice(dash + 1)}`
+        }
+      }
+      return upper
     },
 
     setMarketType(value) {
@@ -429,7 +452,7 @@ export default {
         })
         await quickTradeApi.closePosition({
           credential_id: this.selectedCredentialId,
-          symbol: position.symbol || this.form.symbol.trim(),
+          symbol: this.normalizeQuickTradeSymbol(this.form.symbol || position.symbol),
           market_type: this.marketType,
           position_side: position.side,
           source: 'manual'

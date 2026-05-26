@@ -665,8 +665,21 @@ export default {
     this.form.language = this.settingsStore.locale || 'zh-CN'
   },
   mounted() {
+    this.applyResultToForm(this.result)
     this.refreshLivePrice()
     this.livePriceTimer = setInterval(() => this.refreshLivePrice(), 20000)
+  },
+  activated() {
+    this.applyResultToForm(this.result)
+    this.refreshLivePrice()
+  },
+  watch: {
+    result: {
+      handler(val) {
+        this.applyResultToForm(val)
+      },
+      deep: false
+    }
   },
   beforeUnmount() {
     this.stopProgress()
@@ -676,6 +689,13 @@ export default {
     }
   },
   methods: {
+    applyResultToForm(result) {
+      if (!result) return
+      if (result.market) this.form.market = result.market
+      if (result.symbol) this.form.symbol = result.symbol
+      if (result.timeframe) this.form.timeframe = result.timeframe
+      if (result.language) this.form.language = result.language
+    },
     openSymbolPicker() {
       this.showSymbolPicker = true
     },

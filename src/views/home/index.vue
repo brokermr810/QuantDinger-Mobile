@@ -255,12 +255,16 @@
       </div>
     </div>
 
+    <!-- 宏观速览 + 财经日历（自 AI 页移至首页底部） -->
+    <MacroCalendarPanel />
+
     <van-loading v-if="loading" class="page-loading" vertical>{{ $t('common.loading') }}</van-loading>
   </div>
 </template>
 
 <script>
 import { credentialsApi, dashboardApi, getBaseUrl, strategyApi, watchlistApi } from '@/api'
+import MacroCalendarPanel from '@/components/MacroCalendarPanel.vue'
 import {
   useCredentialsStore,
   useDashboardStore,
@@ -274,7 +278,7 @@ import SymbolPicker from '@/components/SymbolPicker.vue'
 
 export default {
   name: 'Home',
-  components: { SymbolPicker },
+  components: { SymbolPicker, MacroCalendarPanel },
 
   data() {
     return {
