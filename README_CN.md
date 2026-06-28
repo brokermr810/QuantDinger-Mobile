@@ -155,7 +155,10 @@ MOBILE_TAG=4.0.3
 MOBILE_PORT=8889
 # 仅在单独运行移动端镜像、不使用主仓 Compose 栈时需要。
 # 默认 Compose 栈中保持 http://backend:5000 即可。
-BACKEND_URL=http://host.docker.internal:5000
+# 1Panel 单独运行且后端容器名为 quantdinger_api 时：
+BACKEND_URL=http://quantdinger_api:5000
+# 如果后端跑在宿主机 Docker Desktop：
+# BACKEND_URL=http://host.docker.internal:5000
 ```
 
 ---
@@ -193,7 +196,7 @@ BACKEND_URL=http://host.docker.internal:5000
 | 运行方式 | 如何指向自己的后端 |
 |------|------|
 | 主仓 Docker 一键部署 | 通常不用改。移动端容器在 `MOBILE_PORT` 提供 H5，并把 `/api` 自动反代到同一套后端。 |
-| 单独运行移动端 Docker 镜像 | 启动容器时传 `-e BACKEND_URL=http://host.docker.internal:5000`，或换成你的真实后端地址。这个变量控制容器内 Nginx 的 `/api/` 反代目标。 |
+| 单独运行移动端 Docker 镜像 | 启动容器时传 `-e BACKEND_URL=http://quantdinger_api:5000`（1Panel 常见容器名）、`-e BACKEND_URL=http://host.docker.internal:5000`（Docker Desktop 宿主机后端），或换成你的真实后端地址。这个变量控制容器内 Nginx 的 `/api/` 反代目标。 |
 | `npm run dev` 本地开发 | 启动前设置 `VITE_DEV_API_TARGET=http://127.0.0.1:5000`。浏览器里看到的请求仍会是开发服务器上的 `/api/...`，由 Vite 转发到后端。 |
 | 自己部署静态 H5 | 推荐同源反代：例如前端是 `https://m.example.com`，就把 `https://m.example.com/api/` 反代到后端。 |
 | Android / iOS 原生壳 | 在 App 设置里填写手机能访问到的服务地址，例如 `http://192.168.1.10:5000` 或 `https://api.example.com`。 |

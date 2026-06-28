@@ -23,7 +23,7 @@ FROM ${NGINX_IMAGE}
 RUN apk add --no-cache curl
 
 ENV NGINX_ENVSUBST_FILTER=BACKEND_URL \
-    BACKEND_URL=http://backend:5000
+    BACKEND_URL=http://quantdinger_api:5000
 
 COPY deploy/nginx-mobile.conf /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
