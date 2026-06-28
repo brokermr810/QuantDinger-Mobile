@@ -81,7 +81,7 @@ quantdinger-mobile/
 │   ├── views/         # 业务页面
 │   ├── App.vue
 │   └── main.js
-├── android/           # Capacitor Android 工程（随 sync 更新）
+├── android/           # Capacitor Android 工程源码
 ├── ios/               # Capacitor iOS 工程（macOS）
 ├── capacitor.config.json
 ├── vite.config.js
@@ -126,10 +126,9 @@ npm install
 npm run dev
 ```
 
-`npm run dev` 即本地 **H5** 调试。若需原生工程，在首次构建后添加或同步平台：
+`npm run dev` 即本地 **H5** 调试。`android/` 工程已随仓库提交；生产构建后同步原生资源即可：
 
 ```bash
-npx cap add android    # 若尚未生成 android 目录
 npx cap add ios        # 仅在 macOS 上执行
 npm run build
 npx cap sync
@@ -208,9 +207,60 @@ MOBILE_PORT=8889
 
 ## Android 与 iOS 构建
 
-1. 执行 `npm run build:android` 或 `npm run build:ios`。  
-2. 使用 `npm run cap:android` / `cap:ios` 打开对应 IDE。  
-3. 在 IDE 与各应用商店控制台中完成**包名 / Bundle ID**、签名、图标、隐私声明与上架物料。
+### Android debug APK
+
+环境要求：Node.js 20.19+ 或 22.12+、Android Studio、Android SDK，以及 JDK。Android Studio 自带的 JBR 可以作为 `JAVA_HOME` 使用。
+
+```bash
+npm install
+npm run cap:assets
+npm run build:android
+cd android
+./gradlew assembleDebug
+```
+
+debug APK 输出位置：
+
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Windows PowerShell 如果因为执行策略拦截 `npm.ps1`，请改用 `npm.cmd`；如果 Gradle 找不到 Java，可只在当前终端临时设置 `JAVA_HOME`：
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+npm.cmd run cap:assets
+npm.cmd run build:android
+cd android
+.\gradlew.bat assembleDebug
+```
+
+### Release 构建
+
+先生成 Web 产物并同步 Android：
+
+```bash
+npm run cap:assets
+npm run build:android
+cd android
+./gradlew assembleRelease
+```
+
+发布签名文件不会提交到仓库。请把 keystore 和 `keystore.properties` 保存在本机或 CI secrets 中，再通过 Android Studio 或 Gradle 配置签名后产出商店包。
+
+### Android 文件提交策略
+
+`android/` 工程源码会提交到仓库，这样贡献者无需再运行 `npx cap add android`。以下本地文件和构建产物继续忽略：
+
+- `android/.gradle/`
+- `android/**/build/`
+- `android/local.properties`
+- `android/app/src/main/assets/public/`（由 `npm run build:android` 生成）
+- `*.apk` 和 `*.aab`
+- 签名 keystore 与 `signing/keystore.properties`
+
+iOS 请在 macOS 上执行 `npm run build:ios`，再用 `npm run cap:ios` 打开原生工程。
 
 推送通知、生物识别等能力依赖额外插件与原生配置，请参阅 Capacitor 官方文档按需启用。
 
