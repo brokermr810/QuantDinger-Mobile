@@ -155,9 +155,9 @@ IMAGE_TAG=4.0.3
 MOBILE_TAG=4.0.3
 MOBILE_PORT=8889
 # Only needed when running the mobile image outside the main Compose stack.
-# In the default stack this stays http://backend:5000.
-# 1Panel-style standalone deployment with backend container named quantdinger_api:
-BACKEND_URL=http://quantdinger_api:5000
+# In the default stack this stays http://backend:5000. Do not change it.
+# Only override it when your backend container uses a custom name, for example:
+# BACKEND_URL=http://quantdinger_api:5000
 # Docker Desktop backend running on the host:
 # BACKEND_URL=http://host.docker.internal:5000
 ```
@@ -197,7 +197,7 @@ After changing the URL, use **Test connection** in settings. If health checks fa
 | Runtime | How to point it at your backend |
 |---------|----------------------------------|
 | Main QuantDinger Docker stack | Usually change nothing. The mobile container serves H5 on `MOBILE_PORT` and proxies `/api` to the backend service. |
-| Mobile Docker image by itself | Pass `-e BACKEND_URL=http://quantdinger_api:5000` for common 1Panel standalone deployments, `-e BACKEND_URL=http://host.docker.internal:5000` when the backend runs on the Docker Desktop host, or your real backend origin. This controls the Nginx `/api/` proxy inside the container. |
+| Mobile Docker image by itself | By default it looks for `backend:5000` on the same Docker network. If your backend container has a custom name, pass `-e BACKEND_URL=http://your-backend-container:5000`; use `-e BACKEND_URL=http://host.docker.internal:5000` when the backend runs on the Docker Desktop host. This controls the Nginx `/api/` proxy inside the container. |
 | `npm run dev` H5 development | Set `VITE_DEV_API_TARGET=http://127.0.0.1:5000` before starting Vite. Browser requests will still look like `/api/...` on the dev server because Vite proxies them. |
 | Static H5 behind your own Nginx | Prefer same-origin proxy: serve the app at `https://m.example.com` and proxy `https://m.example.com/api/` to the backend. |
 | Native Android/iOS shell | Open app settings and set the server URL to an address the phone can reach, such as `http://192.168.1.10:5000` or `https://api.example.com`. |
